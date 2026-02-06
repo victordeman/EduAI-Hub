@@ -13,7 +13,8 @@
     "@tanstack/react-query": "^5.0.0",
     "zustand": "^5.0.0",
     "lucide-react": "^0.300.0",
-    "class-variance-authority": "^0.7.0"
+    "class-variance-authority": "^0.7.0",
+    "@vitejs/plugin-rsc": "^1.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
