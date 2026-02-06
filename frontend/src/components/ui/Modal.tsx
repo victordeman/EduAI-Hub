@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, forwardRef, HTMLAttributes } from 'react';
 import { createPortal } from 'react-dom';
 
