@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../lib/script';
 import { LucideMenu, LucideBell, LucideLogOut } from 'lucide-react';
