@@ -1,5 +1,7 @@
+'use client';
+
 import { forwardRef, ButtonHTMLAttributes } from 'react';
-import { cva, VariantProps } from 'class-variance-authority'; // For variants, install class-variance-authority
+import { cva, VariantProps } from 'class-variance-authority';
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary-500/50 disabled:opacity-50 disabled:cursor-not-allowed',
