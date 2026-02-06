@@ -1,3 +1,5 @@
+'use client';
+
 import { useAppStore } from '../lib/script';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Navbar } from './Navbar';
