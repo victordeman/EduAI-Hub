@@ -14,7 +14,12 @@
     "@tanstack/react-query": "^5.0.0",
     "zustand": "^5.0.0",
     "lucide-react": "^0.300.0",
-    "class-variance-authority": "^0.7.0"
+    "class-variance-authority": "^0.7.0",
+    "langchain": "^0.2.0",
+    "@langchain/openai": "^0.0.10",
+    "@langchain/community": "^0.0.10",
+    "faiss-node": "^0.5.0",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "typescript": "^5.0.0",
@@ -25,6 +30,7 @@
     "postcss": "^8.4.0",
     "autoprefixer": "^10.4.0",
     "eslint": "^8",
-    "eslint-config-next": "15.0.0-rc.2"
+    "eslint-config-next": "15.0.0-rc.2",
+    "@types/uuid": "^9.0.0"
   }
 }
