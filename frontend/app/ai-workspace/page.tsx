@@ -8,23 +8,24 @@ import { Modal } from '@/components/ui/Modal';
 
 export default function AiTaskWorkspace() {
   const [files, setFiles] = useState<File[]>([]);
-  const [model, setModel] = useState('gpt-4o');
+  const [embedder, setEmbedder] = useState('proprietary');
+  const [llm, setLlm] = useState('gpt-4o');
   const [query, setQuery] = useState('');
   const [citations, setCitations] = useState<any[]>([]);
   const [knowledgeBaseName, setKnowledgeBaseName] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
-  const [storeId, setStoreId] = useState('');
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const formData = new FormData();
       files.forEach(file => formData.append('files', file));
+      formData.append('embedder', embedder);
       const response = await fetch('/api/rag/upload', { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Upload failed');
       return response.json();
     },
     onSuccess: (data) => {
-      setStoreId(data.storeId);
+      console.log('Uploaded:', data);
     },
     onError: (error) => {
       console.error('Upload error:', error);
@@ -36,14 +37,14 @@ export default function AiTaskWorkspace() {
       const response = await fetch('/api/rag/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, model, storeId }),
+        body: JSON.stringify({ query, llm }),
       });
       if (!response.ok) throw new Error('Query failed');
       return response.json();
     },
     onSuccess: (data) => {
       setCitations(data.citations);
-      // Display data.answer somewhere
+      console.log('Answer:', data.answer);
     },
     onError: (error) => {
       console.error('Query error:', error);
@@ -63,7 +64,7 @@ export default function AiTaskWorkspace() {
   };
 
   const handleSaveKnowledgeBase = () => {
-    // API call to persist store if needed
+    // API call to persist if needed (e.g., save index name)
     setShowSaveModal(false);
   };
 
@@ -71,8 +72,11 @@ export default function AiTaskWorkspace() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">AI Agent Task Workspace</h1>
       <input type="file" accept=".pdf" multiple onChange={handleFileChange} className="mb-4 block" />
-      <Button onClick={handleUpload} loading={uploadMutation.isPending} className="mb-4">Upload PDFs</Button>
-      <select value={model} onChange={(e) => setModel(e.target.value)} className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white">
+      <select value={embedder} onChange={(e) => setEmbedder(e.target.value)} className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white">
+        <option value="proprietary">Proprietary (OpenAI)</option>
+        <option value="open-source">Open-Source (SentenceTransformer)</option>
+      </select>
+      <select value={llm} onChange={(e) => setLlm(e.target.value)} className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white">
         <optgroup label="Proprietary/Enterprise">
           <option value="gpt-4o">GPT-4o ($0.02/1k · 120 tps)</option>
           <option value="gpt-4o-mini">GPT-4o-mini ($0.01/1k · 150 tps)</option>
@@ -92,11 +96,12 @@ export default function AiTaskWorkspace() {
       </select>
       <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="RAG Query" className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white" />
       <div className="flex gap-4 mb-4">
-        <Button onClick={handleRAGQuery} loading={queryMutation.isPending} disabled={!storeId}>Execute Task</Button>
-        <Button variant="secondary" onClick={() => setShowSaveModal(true)} disabled={!storeId}>Save Knowledge Base</Button>
+        <Button onClick={handleUpload} loading={uploadMutation.isPending}>Upload and Vectorize</Button>
+        <Button onClick={handleRAGQuery} loading={queryMutation.isPending} disabled={uploadMutation.isIdle}>Execute Query</Button>
+        <Button variant="secondary" onClick={() => setShowSaveModal(true)}>Save Knowledge Base</Button>
       </div>
-      {uploadMutation.isPending && <Loader text="Processing PDFs..." />}
-      {queryMutation.isPending && <Loader text="Querying..." />}
+      {uploadMutation.isPending && <Loader text="Processing PDFs with selected embedder..." />}
+      {queryMutation.isPending && <Loader text="Querying with selected LLM..." />}
       <div className="mt-6">
         <h3 className="text-lg font-semibold mb-2">Citations</h3>
         {citations.map((cit, idx) => (
