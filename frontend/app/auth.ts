@@ -1,23 +1,9 @@
-import { AuthOptions } from 'auth';
-import Credentials from 'auth/providers/credentials';
+import { AuthOptions } from 'next-auth';
+import Credentials from 'next-auth/providers/credentials';
+import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-const users = [
-  {
-    id: '1',
-    name: 'User',
-    email: 'user@example.com',
-    password: await bcrypt.hash('password', 10),
-    role: 'Student Researcher',
-  },
-  {
-    id: '2',
-    name: 'Admin',
-    email: 'admin@example.com',
-    password: await bcrypt.hash('adminpass', 10),
-    role: 'Admin',
-  },
-];
+const prisma = new PrismaClient();
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -29,13 +15,13 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials.password) return null;
 
-        const user = users.find(u => u.email === credentials.email);
+        const user = await prisma.user.findUnique({ where: { email: credentials.email } });
         if (!user) throw new Error('Invalid credentials');
 
         const isValid = await bcrypt.compare(credentials.password, user.password);
         if (!isValid) throw new Error('Invalid credentials');
 
-        return user;
+        return { id: user.id, name: user.name, email: user.email, role: user.role };
       },
     }),
   ],
