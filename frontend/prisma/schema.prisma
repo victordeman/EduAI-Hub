@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // or "postgresql" for prod
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String
+  projects  Project[]
+  tutorials Tutorial[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  tags        String[] // JSON array in SQLite
+  authorId    String
+  difficulty  String
+  applicants  Int
+  deadline    DateTime
+  author      User     @relation(fields: [authorId], references: [id])
+}
+
+model Tutorial {
+  id        String   @id @default(uuid())
+  title     String
+  excerpt   String
+  content   String   // JSON from Lexical
+  authorId  String
+  readTime  String
+  category  String
+  author    User     @relation(fields: [authorId], references: [id])
+}
