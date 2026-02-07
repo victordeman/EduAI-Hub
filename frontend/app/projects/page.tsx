@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { mockData } from '@/lib/script';
+import { PrismaClient } from '@prisma/client';
 import { LucideUser, LucideCalendar, LucideTag } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -7,9 +7,10 @@ import { Modal } from '@/components/ui/Modal';
 import { useState } from 'react';
 import { Loader } from '@/components/ui/Loader';
 
+const prisma = new PrismaClient();
+
 async function fetchProjects() {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockData.projects;
+  return await prisma.project.findMany();
 }
 
 export default async function ProjectsPage() {
@@ -24,7 +25,7 @@ export default async function ProjectsPage() {
 
 'use client';
 
-function ProjectsList({ projects }: { projects: typeof mockData.projects }) {
+function ProjectsList({ projects }: { projects: await fetchProjects() }) {
   const [search, setSearch] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
@@ -70,11 +71,11 @@ function ProjectsList({ projects }: { projects: typeof mockData.projects }) {
             <div className="space-y-2 text-sm text-slate-500">
               <div className="flex items-center gap-2">
                 <LucideUser size={16} />
-                {project.author}
+                {project.authorId}  // Replace with user name fetch if needed
               </div>
               <div className="flex items-center gap-2">
                 <LucideCalendar size={16} />
-                Deadline: {project.deadline}
+                Deadline: {project.deadline.toISOString().split('T')[0]}
               </div>
               <div className="flex items-center gap-2">
                 <LucideTag size={16} />
@@ -91,7 +92,7 @@ function ProjectsList({ projects }: { projects: typeof mockData.projects }) {
         <Modal open={showApplyModal} title={`Apply to ${selectedProject.title}`} onClose={() => setShowApplyModal(false)}>
           <input type="file" accept=".pdf,.docx" placeholder="Upload Resume" className="mb-4 block w-full" />
           <textarea placeholder="Cover Letter" className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white" rows={5}></textarea>
-          <Button onClick={() => { /* API call */ setShowApplyModal(false); }}>Submit Application</Button>
+          <Button onClick={() => { /* API call to apply */ setShowApplyModal(false); }}>Submit Application</Button>
         </Modal>
       )}
     </div>
