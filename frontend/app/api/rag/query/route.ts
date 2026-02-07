@@ -1,38 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
-import { OpenAIEmbeddings } from '@langchain/openai';
-import { FAISS } from 'langchain/vectorstores/faiss';
-import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { v4 as uuidv4 } from 'uuid';
-
-// In-memory store for demo (use Pinecone for production)
-const vectorStores: Record<string, FAISS> = {};
+import { ChatOpenAI } from '@langchain/openai';
+import { RetrievalQAChain } from 'langchain/chains';
+import { Pinecone as PineconeClient } from '@pinecone-database/pinecone';
+import { PineconeStore } from '@langchain/community/vectorstores/pinecone';
+import { OpenAIEmbeddings } from '@langchain/openai';  // Use same embedder as upload for retrieval
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
+    const { query, llm: llmModel } = await req.json();
 
-    const embeddings = new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY });
+    const pc = new PineconeClient({ apiKey: process.env.PINECONE_API_KEY });
+    const index = pc.index(process.env.PINECONE_INDEX_NAME || 'eduai-index');
 
-    const docs = [];
-    for (const file of files) {
-      const buffer = await file.arrayBuffer();
-      const loader = new PDFLoader(new Blob([buffer]));
-      const loadedDocs = await loader.load();
-      docs.push(...loadedDocs);
-    }
+    const embeddings = new OpenAIEmbeddings();  // Or match upload embedder; assume consistent
 
-    const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
-    const splitDocs = await splitter.splitDocuments(docs);
+    const vectorStore = await PineconeStore.fromExistingIndex(embeddings, { pineconeIndex: index });
 
-    const vectorStore = await FAISS.fromDocuments(splitDocs, embeddings);
-    const storeId = uuidv4();
-    vectorStores[storeId] = vectorStore;
+    const llm = new ChatOpenAI({ model: llmModel || 'gpt-4o' });  // For local, replace with HuggingFaceHub or local model
 
-    return NextResponse.json({ storeId, message: 'Documents uploaded and vectorized' });
+    const chain = RetrievalQAChain.fromLLM(llm, vectorStore.asRetriever());
+
+    const response = await chain.invoke({ query });
+
+    // Parse citations (assume metadata has page/source)
+    const citations = response.sourceDocuments?.map((doc: any) => ({
+      page: doc.metadata.page || 'unknown',
+      excerpt: doc.pageContent.substring(0, 100) + '...',
+    })) || [];
+
+    return NextResponse.json({ answer: response.result, citations });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: 'Failed to upload and process PDFs' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to query RAG' }, { status: 500 });
   }
 }
