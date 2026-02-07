@@ -1,29 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import { useAppStore } from '@/lib/script';
+import { signIn } from 'auth/react';
 import { LucideMail, LucideLock, LucideEye, LucideEyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const { setState } = useAppStore();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
 
   const handleToggle = () => {
     setIsLogin(!isLogin);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = { name: email.split('@')[0], email, role: 'Student Researcher' };
-    localStorage.setItem('eduai_user', JSON.stringify(user));
-    setState('user', user);
-    setState('isAuthenticated', true);
-    // Redirect to '/'
+    try {
+      await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+      // Redirect to '/'
+      window.location.href = '/';
+    } catch (err) {
+      setError('Invalid credentials');
+    }
   };
 
   return (
@@ -35,6 +41,7 @@ export default function LoginPage() {
             <h2 className="text-2xl font-bold text-white mb-2">{isLogin ? 'Welcome back' : 'Create account'}</h2>
             <p className="text-slate-400">{isLogin ? 'Enter your credentials to access your workspace' : 'Join the future of AI-powered education'}</p>
           </div>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Email address</label>
