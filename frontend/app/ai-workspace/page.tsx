@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/Button';
 import { Loader } from '@/components/ui/Loader';
@@ -13,16 +13,40 @@ export default function AiTaskWorkspace() {
   const [citations, setCitations] = useState<any[]>([]);
   const [knowledgeBaseName, setKnowledgeBaseName] = useState('');
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [storeId, setStoreId] = useState('');
 
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
       const formData = new FormData();
       files.forEach(file => formData.append('files', file));
       const response = await fetch('/api/rag/upload', { method: 'POST', body: formData });
-      return response.json(); // Assume returns vectorized data
+      if (!response.ok) throw new Error('Upload failed');
+      return response.json();
     },
     onSuccess: (data) => {
-      // Update citations or knowledge base
+      setStoreId(data.storeId);
+    },
+    onError: (error) => {
+      console.error('Upload error:', error);
+    },
+  });
+
+  const queryMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/rag/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, model, storeId }),
+      });
+      if (!response.ok) throw new Error('Query failed');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCitations(data.citations);
+      // Display data.answer somewhere
+    },
+    onError: (error) => {
+      console.error('Query error:', error);
     },
   });
 
@@ -30,17 +54,16 @@ export default function AiTaskWorkspace() {
     if (e.target.files) setFiles(Array.from(e.target.files));
   };
 
-  const handleRAGQuery = async () => {
-    const response = await fetch('/api/rag/query', {
-      method: 'POST',
-      body: JSON.stringify({ query, model, files: files.map(f => f.name) }),
-    });
-    const data = await response.json();
-    setCitations(data.citations || []);
+  const handleUpload = () => {
+    uploadMutation.mutate(files);
+  };
+
+  const handleRAGQuery = () => {
+    queryMutation.mutate();
   };
 
   const handleSaveKnowledgeBase = () => {
-    // API call to save
+    // API call to persist store if needed
     setShowSaveModal(false);
   };
 
@@ -48,6 +71,7 @@ export default function AiTaskWorkspace() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">AI Agent Task Workspace</h1>
       <input type="file" accept=".pdf" multiple onChange={handleFileChange} className="mb-4 block" />
+      <Button onClick={handleUpload} loading={uploadMutation.isPending} className="mb-4">Upload PDFs</Button>
       <select value={model} onChange={(e) => setModel(e.target.value)} className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white">
         <optgroup label="Proprietary/Enterprise">
           <option value="gpt-4o">GPT-4o ($0.02/1k · 120 tps)</option>
@@ -68,10 +92,11 @@ export default function AiTaskWorkspace() {
       </select>
       <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="RAG Query" className="mb-4 block w-full bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-3 text-white" />
       <div className="flex gap-4 mb-4">
-        <Button onClick={handleRAGQuery} loading={uploadMutation.isPending}>Execute Task</Button>
-        <Button variant="secondary" onClick={() => setShowSaveModal(true)}>Save Knowledge Base</Button>
+        <Button onClick={handleRAGQuery} loading={queryMutation.isPending} disabled={!storeId}>Execute Task</Button>
+        <Button variant="secondary" onClick={() => setShowSaveModal(true)} disabled={!storeId}>Save Knowledge Base</Button>
       </div>
       {uploadMutation.isPending && <Loader text="Processing PDFs..." />}
+      {queryMutation.isPending && <Loader text="Querying..." />}
       <div className="mt-6">
         <h3 className="text-lg font-semibold mb-2">Citations</h3>
         {citations.map((cit, idx) => (
