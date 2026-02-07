@@ -56,7 +56,15 @@ export default async function Home() {
               ))}
             </div>
           </Card>
-          {/* Add Quick Actions if needed */}
+          {/* Quick Actions card */}
+          <Card className="p-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+            <div className="space-y-2">
+              <Button variant="ghost" className="w-full justify-start">Create Project</Button>
+              <Button variant="ghost" className="w-full justify-start">Start AI Query</Button>
+              <Button variant="ghost" className="w-full justify-start">View Tutorials</Button>
+            </div>
+          </Card>
         </div>
       </div>
     </Suspense>
@@ -65,6 +73,10 @@ export default async function Home() {
 
 // Client sub-component for animation
 'use client';
+
+import { useEffect, useRef } from 'react';
+import { Card } from '@/components/ui/Card';
+import { LucideFolder, LucideMessageSquare, LucideBook, LucideBookmark, LucideTrendingUp } from 'lucide-react';
 
 function StatsAnimation({ stats }: { stats: Record<string, number> }) {
   const statsRef = useRef<{ [key: string]: HTMLHeadingElement | null }>({});
