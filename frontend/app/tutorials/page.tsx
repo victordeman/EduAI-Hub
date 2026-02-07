@@ -1,13 +1,14 @@
 import { Suspense } from 'react';
-import { mockData } from '@/lib/script';
+import { PrismaClient } from '@prisma/client';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { Loader } from '@/components/ui/Loader';
 
+const prisma = new PrismaClient();
+
 async function fetchTutorials() {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockData.tutorials;
+  return await prisma.tutorial.findMany();
 }
 
 export default async function TutorialsPage() {
@@ -26,7 +27,7 @@ export default async function TutorialsPage() {
               <h3 className="text-xl font-semibold text-white mb-2">{tutorial.title}</h3>
               <p className="text-slate-400 mb-4">{tutorial.excerpt}</p>
               <div className="space-y-2 text-sm text-slate-500">
-                <div>Author: {tutorial.author}</div>
+                <div>Author: {tutorial.authorId}</div>
                 <div>Read Time: {tutorial.readTime}</div>
                 <div>Category: {tutorial.category}</div>
               </div>
