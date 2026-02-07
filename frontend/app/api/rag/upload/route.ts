@@ -1,19 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf';
 import { OpenAIEmbeddings } from '@langchain/openai';
-import { FAISS } from 'langchain/vectorstores/faiss';
+import { SentenceTransformerEmbeddings } from '@langchain/community/embeddings/sentence_transformer';
+import { Pinecone as PineconeClient } from '@pinecone-database/pinecone';
+import { PineconeStore } from '@langchain/community/vectorstores/pinecone';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
-import { v4 as uuidv4 } from 'uuid';
-
-// In-memory store for demo (use Pinecone for production)
-const vectorStores: Record<string, FAISS> = {};
 
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
     const files = formData.getAll('files') as File[];
+    const embedder = formData.get('embedder') as string || 'proprietary';
 
-    const embeddings = new OpenAIEmbeddings({ openAIApiKey: process.env.OPENAI_API_KEY });
+    let embeddings;
+    if (embedder === 'proprietary') {
+      embeddings = new OpenAIEmbeddings({ model: 'text-embedding-ada-002' });
+    } else {
+      embeddings = new SentenceTransformerEmbeddings({ modelName: 'all-MiniLM-L6-v2' });
+    }
+
+    const pc = new PineconeClient({ apiKey: process.env.PINECONE_API_KEY });
+    const index = pc.index(process.env.PINECONE_INDEX_NAME || 'eduai-index');
 
     const docs = [];
     for (const file of files) {
@@ -26,11 +33,9 @@ export async function POST(req: NextRequest) {
     const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
     const splitDocs = await splitter.splitDocuments(docs);
 
-    const vectorStore = await FAISS.fromDocuments(splitDocs, embeddings);
-    const storeId = uuidv4();
-    vectorStores[storeId] = vectorStore;
+    await PineconeStore.fromDocuments(splitDocs, embeddings, { pineconeIndex: index });
 
-    return NextResponse.json({ storeId, message: 'Documents uploaded and vectorized' });
+    return NextResponse.json({ message: 'Documents uploaded and vectorized to Pinecone' });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to upload and process PDFs' }, { status: 500 });
