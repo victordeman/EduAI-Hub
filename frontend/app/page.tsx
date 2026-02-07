@@ -137,3 +137,24 @@ function StatsAnimation({ stats }: { stats: Record<string, number> }) {
     </div>
   );
 }
+
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+
+export default async function Home() {
+  const session = await auth();
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  const stats = await fetchStats();
+
+  return (
+    <Suspense fallback={<Loader text="Loading Dashboard..." />}>
+      <div className="space-y-8 animate-fade-in">
+        {/* ... rest same as before */}
+      </div>
+    </Suspense>
+  );
+}
